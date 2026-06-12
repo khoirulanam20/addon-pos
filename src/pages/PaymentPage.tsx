@@ -132,6 +132,9 @@ export function PaymentPage() {
   }, [method, grandTotal, cashNum, transferNum, bankId, reference])
 
   const completePayment = async () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7854/ingest/4daf1b18-d0c4-465c-b5a4-479f15c14527',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'16bc84'},body:JSON.stringify({sessionId:'16bc84',hypothesisId:'D',location:'PaymentPage.tsx:completePayment',message:'payment attempt',data:{apiReachable,canConfirm,hasPreview:!!preview,warehouseId,lineCount:cart.lines.length},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     if (!warehouseId || !preview || !canConfirm) return
     setLoading(true)
     try {
@@ -164,6 +167,9 @@ export function PaymentPage() {
         setSuccessOrder(order.orderNumber)
       } else {
         const clientReference = uuid()
+        // #region agent log
+        fetch('http://127.0.0.1:7854/ingest/4daf1b18-d0c4-465c-b5a4-479f15c14527',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'16bc84'},body:JSON.stringify({sessionId:'16bc84',hypothesisId:'D',location:'PaymentPage.tsx:offline-save',message:'saving offline order',data:{clientReference,grandTotal:preview.grandTotal},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         await saveOfflineOrder({
           clientReference,
           warehouseId,

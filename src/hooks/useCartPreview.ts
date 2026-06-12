@@ -16,6 +16,9 @@ export function useCartPreview(warehouseId: number, bootstrap: BootstrapData | n
       setPreview(null)
       return
     }
+    // #region agent log
+    fetch('http://127.0.0.1:7854/ingest/4daf1b18-d0c4-465c-b5a4-479f15c14527',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'16bc84'},body:JSON.stringify({sessionId:'16bc84',hypothesisId:'C',location:'useCartPreview.ts:effect',message:'preview effect',data:{apiReachable,hasBootstrap:!!bootstrap,lineCount:cart.lines.length},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     if (apiReachable) {
       previewCart({
         warehouse_id: warehouseId,
@@ -49,8 +52,14 @@ export function useCartPreview(warehouseId: number, bootstrap: BootstrapData | n
             taxIncluded: bootstrap.tax.included,
             stockWarnings: [],
           }
+          // #region agent log
+          fetch('http://127.0.0.1:7854/ingest/4daf1b18-d0c4-465c-b5a4-479f15c14527',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'16bc84'},body:JSON.stringify({sessionId:'16bc84',hypothesisId:'C',location:'useCartPreview.ts:offline-ok',message:'offline preview ok',data:{grandTotal:base.grandTotal,cachedCount:cached.length},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
           setPreview(base)
-        } catch {
+        } catch (err) {
+          // #region agent log
+          fetch('http://127.0.0.1:7854/ingest/4daf1b18-d0c4-465c-b5a4-479f15c14527',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'16bc84'},body:JSON.stringify({sessionId:'16bc84',hypothesisId:'C',location:'useCartPreview.ts:offline-err',message:'offline preview failed',data:{error:err instanceof Error?err.message:'unknown'},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
           setPreview(null)
         }
       })

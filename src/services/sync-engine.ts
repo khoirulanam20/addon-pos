@@ -13,6 +13,9 @@ export async function pullCatalog(warehouseId: number) {
 
   do {
     const { products, meta } = await fetchCatalogPage(warehouseId, page, updatedSince ?? undefined)
+    // #region agent log
+    fetch('http://127.0.0.1:7854/ingest/4daf1b18-d0c4-465c-b5a4-479f15c14527',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'16bc84'},body:JSON.stringify({sessionId:'16bc84',hypothesisId:'A',location:'sync-engine.ts:pullCatalog',message:'catalog sync page',data:{warehouseId,page,updatedSince,inStock:products.filter(p=>p.stock>0).length,total:products.length,sample:products.slice(0,2).map(p=>({id:p.id,stock:p.stock}))},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     await saveCatalogProducts(warehouseId, products)
     lastPage = meta.lastPage
     page += 1

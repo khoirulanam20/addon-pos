@@ -24,7 +24,11 @@ export function usePosCatalog(warehouseId: number) {
         q: search || undefined,
         category_id: categoryId ?? undefined,
       })
-      setProducts(online.map(normalizeCatalogProduct))
+      const normalized = online.map(normalizeCatalogProduct)
+      // #region agent log
+      fetch('http://127.0.0.1:7854/ingest/4daf1b18-d0c4-465c-b5a4-479f15c14527',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'16bc84'},body:JSON.stringify({sessionId:'16bc84',hypothesisId:'A-B',location:'usePosCatalog.ts:online',message:'catalog loaded online',data:{warehouseId,count:normalized.length,inStock:normalized.filter(p=>p.stock>0).length,sample:normalized.slice(0,3).map(p=>({id:p.id,name:p.name,stock:p.stock,variants:(p.variants??[]).length}))},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      setProducts(normalized)
     } else {
       const cached = await getCatalogProducts(warehouseId, categoryId)
       const filtered = search
@@ -34,7 +38,11 @@ export function usePosCatalog(warehouseId: number) {
               p.sku?.toLowerCase().includes(search.toLowerCase()),
           )
         : cached
-      setProducts(filtered.map(normalizeCatalogProduct))
+      const normalized = filtered.map(normalizeCatalogProduct)
+      // #region agent log
+      fetch('http://127.0.0.1:7854/ingest/4daf1b18-d0c4-465c-b5a4-479f15c14527',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'16bc84'},body:JSON.stringify({sessionId:'16bc84',hypothesisId:'A-B',location:'usePosCatalog.ts:offline',message:'catalog loaded offline cache',data:{warehouseId,count:normalized.length,inStock:normalized.filter(p=>p.stock>0).length,sample:normalized.slice(0,3).map(p=>({id:p.id,name:p.name,stock:p.stock,variants:(p.variants??[]).map(v=>({id:v.id,stock:v.stock}))}))},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      setProducts(normalized)
     }
   }, [warehouseId, apiReachable, search, categoryId])
 
