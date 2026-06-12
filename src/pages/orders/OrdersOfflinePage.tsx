@@ -6,24 +6,31 @@ import { CurrencyDisplay } from '@/components/common/CurrencyDisplay'
 import { OrderPreviewPanel } from '@/components/pos/OrderPreviewPanel'
 import { PosDataTable } from '@/components/ui/PosDataTable'
 import { PosEmptyState } from '@/components/ui/PosEmptyState'
+import { TableSkeleton } from '@/components/ui/Skeleton'
 import { listOfflineOrders } from '@/db/offline-orders-repo'
 import type { OfflineOrderRecord } from '@/db/dexie'
 import { formatDateTime } from '@/lib/format'
 
 export function OrdersOfflinePage() {
   const [orders, setOrders] = useState<OfflineOrderRecord[]>([])
+  const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<OfflineOrderRecord | null>(null)
   const { syncNow, syncing, pendingCount } = useSync()
   const { apiReachable } = useNetwork()
   const location = useLocation()
 
   const reload = async () => {
-    const data = await listOfflineOrders()
-    setOrders(data)
-    setSelected((prev) => {
-      if (!prev) return null
-      return data.find((o) => o.clientReference === prev.clientReference) ?? data[0] ?? null
-    })
+    setLoading(true)
+    try {
+      const data = await listOfflineOrders()
+      setOrders(data)
+      setSelected((prev) => {
+        if (!prev) return null
+        return data.find((o) => o.clientReference === prev.clientReference) ?? data[0] ?? null
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -35,6 +42,24 @@ export function OrdersOfflinePage() {
     window.addEventListener('focus', onFocus)
     return () => window.removeEventListener('focus', onFocus)
   }, [])
+
+  if (loading && orders.length === 0) {
+    return (
+      <div>
+        <div className="mb-4 flex justify-end">
+          <button
+            type="button"
+            disabled={!apiReachable || syncing}
+            onClick={() => void syncNow().then(reload)}
+            className="rounded-lg bg-green-600 px-4 py-2 text-sm text-white disabled:opacity-50"
+          >
+            {syncing ? 'Syncing...' : 'Sync ke Server'}
+          </button>
+        </div>
+        <TableSkeleton rows={5} cols={5} />
+      </div>
+    )
+  }
 
   if (orders.length === 0) {
     return (
@@ -49,13 +74,7 @@ export function OrdersOfflinePage() {
             {syncing ? 'Syncing...' : 'Sync ke Server'}
           </button>
         </div>
-        <PosEmptyState
-          message={
-            pendingCount > 0
-              ? 'Memuat pesanan offline...'
-              : 'Belum ada pesanan offline. Transaksi saat mode offline akan muncul di sini.'
-          }
-        />
+        <PosEmptyState message="Belum ada pesanan offline. Transaksi saat mode offline akan muncul di sini." />
       </div>
     )
   }

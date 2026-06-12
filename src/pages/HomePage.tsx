@@ -24,7 +24,7 @@ export function HomePage() {
   const warehouseId = shift?.warehouseId ?? 0
   const [bootstrap, setBootstrap] = useState<BootstrapData | null>(null)
 
-  const { products, categories, categoryId, setCategoryId, search, setSearch, scanSku, reload } =
+  const { products, categories, categoryId, setCategoryId, search, setSearch, loading, scanSku, reload } =
     usePosCatalog(warehouseId)
   const preview = useCartPreview(warehouseId, bootstrap)
 
@@ -144,7 +144,7 @@ export function HomePage() {
             ))}
           </div>
           <div className="min-h-0 flex-1 overflow-auto">
-            <ProductGrid products={products} onSelect={addProduct} />
+            <ProductGrid products={products} onSelect={addProduct} loading={loading} />
           </div>
         </div>
 

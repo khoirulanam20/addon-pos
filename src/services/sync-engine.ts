@@ -1,7 +1,6 @@
 import { fetchCatalogPage } from '@/api/catalog'
 import { fetchBootstrap, fetchCategories } from '@/api/bootstrap'
 import { syncOfflineOrders } from '@/api/sync'
-import { debugLog } from '@/lib/debug-log'
 import { saveCatalogFromSync } from '@/db/catalog-repo'
 import { saveBootstrap, saveCategories } from '@/db/bootstrap-repo'
 import { listOfflineOrders, updateOfflineOrderStatus } from '@/db/offline-orders-repo'
@@ -45,14 +44,6 @@ export async function pushOfflineOrders() {
   const results = await syncOfflineOrders(payload)
 
   for (const result of results) {
-    // #region agent log
-    debugLog('sync-engine.ts:pushOfflineOrders', 'sync-result', {
-      clientReference: result.client_reference.slice(0, 8),
-      status: result.status,
-      error: result.error ?? null,
-    }, 'F')
-    // #endregion
-
     if (result.status === 'created' || result.status === 'duplicate') {
       await updateOfflineOrderStatus(result.client_reference, 'synced')
     } else {
@@ -66,13 +57,6 @@ export async function pushOfflineOrders() {
 export async function fullSync(warehouseId: number) {
   await pullBootstrapData()
   const orderResults = await pushOfflineOrders()
-  // #region agent log
-  debugLog('sync-engine.ts:fullSync', 'orders-pushed-before-catalog', {
-    warehouseId,
-    pushedCount: orderResults.length,
-    statuses: orderResults.map((r) => r.status),
-  }, 'S')
-  // #endregion
   await pullCatalog(warehouseId)
   return orderResults
 }

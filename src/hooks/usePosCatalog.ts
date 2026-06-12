@@ -3,7 +3,6 @@ import { fetchProductBySku, searchProducts } from '@/api/products'
 import type { CatalogProduct, CategoryNode } from '@/api/types'
 import { useNetwork } from '@/app/providers/NetworkProvider'
 import { sortCatalogProducts } from '@/lib/catalog-sort'
-import { debugLog } from '@/lib/debug-log'
 import { isOfflineMode } from '@/lib/offline-mode'
 import { getCategories } from '@/db/bootstrap-repo'
 import { findProductBySku, getCatalogProducts, mergeCatalogFromApi } from '@/db/catalog-repo'
@@ -44,40 +43,33 @@ export function usePosCatalog(warehouseId: number) {
   const [categories, setCategories] = useState<CategoryNode[]>([])
   const [categoryId, setCategoryId] = useState<number | null>(null)
   const [search, setSearch] = useState('')
+  const [loading, setLoading] = useState(true)
 
   const loadCatalog = useCallback(async () => {
-    if (!warehouseId) return
-
-    if (!offlineMode) {
-      const { products: onlineProducts } = await searchProducts({
-        warehouse_id: warehouseId,
-        q: search || undefined,
-        category_id: categoryId ?? undefined,
-      })
-      const normalized = onlineProducts.map(normalizeCatalogProduct)
-      await mergeCatalogFromApi(warehouseId, normalized)
-      setProducts(sortCatalogProducts(normalized))
+    if (!warehouseId) {
+      setLoading(false)
       return
     }
 
-    const cached = await getCatalogProducts(warehouseId)
-    const filtered = filterCatalogProducts(cached.map(normalizeCatalogProduct), search, categoryId)
-    // #region agent log
-    debugLog('usePosCatalog.ts:loadCatalog', 'offline-catalog', {
-      warehouseId,
-      cachedCount: cached.length,
-      visibleCount: filtered.length,
-      categoryId,
-      hasSearch: !!search.trim(),
-      sampleStock: filtered.slice(0, 3).map((p) => ({
-        id: p.id,
-        stock: p.stock,
-        trackStock: p.trackStock,
-        variantCount: p.variants?.length ?? 0,
-      })),
-    }, 'P')
-    // #endregion
-    setProducts(filtered)
+    setLoading(true)
+    try {
+      if (!offlineMode) {
+        const { products: onlineProducts } = await searchProducts({
+          warehouse_id: warehouseId,
+          q: search || undefined,
+          category_id: categoryId ?? undefined,
+        })
+        const normalized = onlineProducts.map(normalizeCatalogProduct)
+        await mergeCatalogFromApi(warehouseId, normalized)
+        setProducts(sortCatalogProducts(normalized))
+      } else {
+        const cached = await getCatalogProducts(warehouseId)
+        const filtered = filterCatalogProducts(cached.map(normalizeCatalogProduct), search, categoryId)
+        setProducts(filtered)
+      }
+    } finally {
+      setLoading(false)
+    }
   }, [warehouseId, offlineMode, search, categoryId])
 
   useEffect(() => {
@@ -117,6 +109,7 @@ export function usePosCatalog(warehouseId: number) {
     setCategoryId,
     search,
     setSearch,
+    loading,
     reload: loadCatalog,
     scanSku,
   }

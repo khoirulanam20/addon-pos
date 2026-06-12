@@ -5,7 +5,8 @@ import { usePosCatalog } from '@/hooks/usePosCatalog'
 export function ProductsPage() {
   const { shift } = useAuth()
   const warehouseId = shift?.warehouseId ?? 0
-  const { products, categories, categoryId, setCategoryId, search, setSearch } = usePosCatalog(warehouseId)
+  const { products, categories, categoryId, setCategoryId, search, setSearch, loading } =
+    usePosCatalog(warehouseId)
 
   if (!shift) return null
 
@@ -41,7 +42,7 @@ export function ProductsPage() {
           </button>
         ))}
       </div>
-      <ProductGrid products={products} onSelect={() => {}} />
+      <ProductGrid products={products} onSelect={() => {}} loading={loading} />
     </div>
   )
 }

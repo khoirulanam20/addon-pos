@@ -1,13 +1,19 @@
 import type { CatalogProduct } from '@/api/types'
 import { CurrencyDisplay } from '@/components/common/CurrencyDisplay'
+import { ProductGridSkeleton } from '@/components/ui/Skeleton'
 import { isOutOfStock, stockLabel } from '@/lib/product-stock'
 
 type Props = {
   products: CatalogProduct[]
   onSelect: (product: CatalogProduct) => void
+  loading?: boolean
 }
 
-export function ProductGrid({ products, onSelect }: Props) {
+export function ProductGrid({ products, onSelect, loading }: Props) {
+  if (loading && products.length === 0) {
+    return <ProductGridSkeleton />
+  }
+
   if (products.length === 0) {
     return <p className="py-12 text-center text-sm text-gray-500">Produk tidak ditemukan.</p>
   }

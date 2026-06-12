@@ -8,6 +8,7 @@ import type { BootstrapData } from '@/api/types'
 import { useAuth } from '@/app/providers/AuthProvider'
 import { useNetwork } from '@/app/providers/NetworkProvider'
 import { CartPanel } from '@/components/pos/CartPanel'
+import { CustomerListSkeleton } from '@/components/ui/Skeleton'
 import { getBootstrap } from '@/db/bootstrap-repo'
 import { saveLocalHeldCart } from '@/db/held-carts-repo'
 import { useCartPreview } from '@/hooks/useCartPreview'
@@ -264,9 +265,7 @@ export function CustomersPage() {
                 Daftar pelanggan membutuhkan koneksi internet.
               </p>
             )}
-            {apiReachable && loading && customers.length === 0 && (
-              <p className="p-6 text-center text-sm text-gray-500">Memuat pelanggan...</p>
-            )}
+            {apiReachable && loading && customers.length === 0 && <CustomerListSkeleton />}
             {apiReachable && !loading && customers.length === 0 && (
               <p className="p-6 text-center text-sm text-gray-500">Belum ada pelanggan ditemukan.</p>
             )}

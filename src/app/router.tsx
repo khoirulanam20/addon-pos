@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from '@/app/providers/AuthProvider'
+import { AppLoadingSkeleton } from '@/components/ui/Skeleton'
 import { CashierLayout } from '@/components/layout/CashierLayout'
 import { OrdersLayout } from '@/components/layout/OrdersLayout'
 import { OrdersIndexRedirect } from '@/components/orders/OrdersIndexRedirect'
@@ -24,7 +25,7 @@ import { SettingsSyncPage } from '@/pages/settings/SettingsSyncPage'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
-  if (loading) return <div className="flex min-h-screen items-center justify-center">Memuat...</div>
+  if (loading) return <AppLoadingSkeleton />
   if (!user) return <Navigate to="/login" replace />
   return <>{children}</>
 }

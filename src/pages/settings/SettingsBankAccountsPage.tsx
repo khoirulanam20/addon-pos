@@ -10,6 +10,7 @@ import {
 } from '@/api/payment-banks'
 import { useAuth } from '@/app/providers/AuthProvider'
 import { PosCard } from '@/components/ui/PosCard'
+import { BankAccountListSkeleton } from '@/components/ui/Skeleton'
 import { saveBootstrap } from '@/db/bootstrap-repo'
 
 type FormState = {
@@ -153,7 +154,7 @@ export function SettingsBankAccountsPage() {
 
         {message && <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">{message}</p>}
 
-        {loading && <p className="text-sm text-gray-500">Memuat rekening...</p>}
+        {loading && <BankAccountListSkeleton />}
 
         {!loading && banks.length === 0 && (
           <p className="text-sm text-gray-500">Belum ada rekening terdaftar.</p>

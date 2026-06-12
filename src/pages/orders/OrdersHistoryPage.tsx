@@ -8,6 +8,7 @@ import { isOfflineMode } from '@/lib/offline-mode'
 import { CurrencyDisplay } from '@/components/common/CurrencyDisplay'
 import { OrderPreviewPanel } from '@/components/pos/OrderPreviewPanel'
 import { PosDataTable } from '@/components/ui/PosDataTable'
+import { TableSkeleton } from '@/components/ui/Skeleton'
 import { getBootstrap } from '@/db/bootstrap-repo'
 import { formatDateTime } from '@/lib/format'
 
@@ -16,6 +17,7 @@ export function OrdersHistoryPage() {
   const { pendingCount } = useSync()
   const offline = isOfflineMode(online, apiReachable)
   const [orders, setOrders] = useState<OrderSummary[]>([])
+  const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
   const [selected, setSelected] = useState<OrderDetail | null>(null)
   const [storeName, setStoreName] = useState('Toko')
@@ -25,10 +27,15 @@ export function OrdersHistoryPage() {
   }, [])
 
   useEffect(() => {
-    if (!apiReachable) return
+    if (!apiReachable) {
+      setLoading(false)
+      return
+    }
+    setLoading(true)
     fetchOrders(q ? { q } : undefined)
       .then(({ orders: data }) => setOrders(data))
       .catch(() => setOrders([]))
+      .finally(() => setLoading(false))
   }, [apiReachable, q])
 
   const selectOrder = async (order: OrderSummary) => {
@@ -61,6 +68,9 @@ export function OrdersHistoryPage() {
           onChange={(e) => setQ(e.target.value)}
           className="mb-4 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
         />
+        {loading && orders.length === 0 ? (
+          <TableSkeleton rows={6} cols={5} />
+        ) : (
         <PosDataTable<OrderSummary>
           columns={[
             { key: 'id', header: 'Order ID', render: (o) => `#${o.id}` },
@@ -86,6 +96,7 @@ export function OrdersHistoryPage() {
           selectedKey={selected?.id ?? null}
           onRowClick={(o) => void selectOrder(o)}
         />
+        )}
       </div>
       <div className="w-[380px] shrink-0">
         <OrderPreviewPanel order={selected} storeName={storeName} />

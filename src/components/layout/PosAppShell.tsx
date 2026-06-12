@@ -16,7 +16,7 @@ export function PosAppShell() {
         <PosIconSidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <PosTopBar />
-          <main className="min-h-0 flex-1 overflow-auto bg-gray-50 p-4 dark:bg-gray-950">
+          <main className="flex min-h-0 flex-1 flex-col overflow-auto bg-gray-50 p-4 dark:bg-gray-950">
             <Outlet />
           </main>
         </div>
