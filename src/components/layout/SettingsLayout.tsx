@@ -3,6 +3,7 @@ import { PosTabs } from '@/components/ui/PosTabs'
 
 const tabs = [
   { to: '/settings/profile', label: 'Profile', end: true },
+  { to: '/settings/bank-accounts', label: 'Rekening' },
   { to: '/settings/sync', label: 'Sync' },
   { to: '/settings/shortcuts', label: 'Shortcuts' },
 ]

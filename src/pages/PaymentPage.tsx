@@ -1,4 +1,4 @@
-import { Building2, CreditCard } from 'lucide-react'
+import { Building2, ChevronRight, CreditCard } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { createOrder } from '@/api/orders'
@@ -309,7 +309,28 @@ export function PaymentPage() {
                   activeSplitField === 'transfer' ? 'border-green-500 bg-white dark:bg-gray-900' : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900'
                 }`}
               >
-                <div className="text-xs text-gray-500">Transfer</div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-xs text-gray-500">Transfer</div>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setShowBankModal(true)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        setShowBankModal(true)
+                      }
+                    }}
+                    className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-gray-50 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700"
+                    title="Pilih rekening"
+                  >
+                    <Building2 className="h-3.5 w-3.5 text-gray-600 dark:text-gray-300" />
+                  </span>
+                </div>
                 <div className="font-semibold">
                   <CurrencyDisplay amount={transferNum} />
                 </div>
@@ -317,45 +338,30 @@ export function PaymentPage() {
             </div>
           )}
 
+          {method === 'transfer' && (
+            <button
+              type="button"
+              onClick={() => setShowBankModal(true)}
+              className="flex shrink-0 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-left text-sm dark:border-gray-700 dark:bg-gray-900"
+            >
+              <Building2 className="h-4 w-4 shrink-0 text-gray-500" />
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium">
+                  {selectedBank ? selectedBank.bankName : 'Pilih rekening transfer'}
+                </div>
+                <div className="truncate text-xs text-gray-500">
+                  {selectedBank
+                    ? `${selectedBank.accountNumber} · ${reference || 'Tambah referensi'}`
+                    : 'Ketuk untuk atur rekening & referensi'}
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-gray-400" />
+            </button>
+          )}
+
           {(method === 'cash' || method === 'transfer' || method === 'split') && (
             <div className="min-h-0 flex-1">
               <NumericKeypad value={keypadValue} onChange={setKeypadValue} onCancel={() => navigate('/')} />
-            </div>
-          )}
-
-          {(method === 'transfer' || method === 'split') && (
-            <div className="shrink-0 space-y-2 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs text-gray-500">Rekening</div>
-                  {selectedBank ? (
-                    <>
-                      <div className="truncate font-medium">{selectedBank.bankName}</div>
-                      <div className="truncate text-xs text-gray-500">
-                        {selectedBank.accountNumber} · {selectedBank.accountName}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-sm text-gray-400">Belum dipilih</div>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowBankModal(true)}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-gray-50 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700"
-                  title="Pilih rekening"
-                >
-                  <Building2 className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-                </button>
-              </div>
-              <label className="block text-sm">
-                Referensi
-                <input
-                  value={reference}
-                  onChange={(e) => setReference(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-800"
-                />
-              </label>
             </div>
           )}
         </div>
@@ -430,7 +436,9 @@ export function PaymentPage() {
         <SelectBankModal
           banks={bootstrap.paymentBanks}
           selectedId={bankId}
+          reference={reference}
           onSelect={setBankId}
+          onReferenceChange={setReference}
           onClose={() => setShowBankModal(false)}
         />
       )}

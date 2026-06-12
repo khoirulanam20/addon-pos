@@ -16,6 +16,7 @@ import { OrdersOfflinePage } from '@/pages/orders/OrdersOfflinePage'
 import { PaymentPage } from '@/pages/PaymentPage'
 import { ProductsPage } from '@/pages/ProductsPage'
 import { ReportsPage } from '@/pages/ReportsPage'
+import { SettingsBankAccountsPage } from '@/pages/settings/SettingsBankAccountsPage'
 import { SettingsProfilePage } from '@/pages/settings/SettingsProfilePage'
 import { SettingsShortcutsPage } from '@/pages/settings/SettingsShortcutsPage'
 import { SettingsSyncPage } from '@/pages/settings/SettingsSyncPage'
@@ -59,6 +60,7 @@ export function AppRouter() {
           <Route path="/settings" element={<SettingsLayout />}>
             <Route index element={<Navigate to="/settings/profile" replace />} />
             <Route path="profile" element={<SettingsProfilePage />} />
+            <Route path="bank-accounts" element={<SettingsBankAccountsPage />} />
             <Route path="sync" element={<SettingsSyncPage />} />
             <Route path="shortcuts" element={<SettingsShortcutsPage />} />
           </Route>
