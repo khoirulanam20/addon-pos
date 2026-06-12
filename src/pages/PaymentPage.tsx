@@ -11,10 +11,11 @@ import { NumericKeypad } from '@/components/pos/NumericKeypad'
 import { SelectBankModal } from '@/components/pos/SelectBankModal'
 import { SuccessModal } from '@/components/pos/SuccessModal'
 import { getBootstrap } from '@/db/bootstrap-repo'
-import { decrementLocalStock } from '@/db/catalog-repo'
-import { saveOfflineOrder } from '@/db/offline-orders-repo'
+import { countPendingOfflineOrders } from '@/db/offline-orders-repo'
 import { useCartPreview } from '@/hooks/useCartPreview'
-import { uuid } from '@/lib/uuid'
+import { debugLog } from '@/lib/debug-log'
+import { isOfflineMode } from '@/lib/offline-mode'
+import { persistOfflineOrder } from '@/services/offline-checkout'
 import { printReceipt } from '@/services/receipt-printer'
 import { useCartStore } from '@/stores/cart-store'
 
@@ -26,7 +27,7 @@ type PaymentSnapshot = {
 
 export function PaymentPage() {
   const { shift } = useAuth()
-  const { apiReachable } = useNetwork()
+  const { apiReachable, online } = useNetwork()
   const { refreshPending } = useSync()
   const navigate = useNavigate()
   const cart = useCartStore()
@@ -132,80 +133,104 @@ export function PaymentPage() {
   }, [method, grandTotal, cashNum, transferNum, bankId, reference])
 
   const completePayment = async () => {
+    const useOfflineCheckout = isOfflineMode(online, apiReachable)
     // #region agent log
-    fetch('http://127.0.0.1:7854/ingest/4daf1b18-d0c4-465c-b5a4-479f15c14527',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'16bc84'},body:JSON.stringify({sessionId:'16bc84',hypothesisId:'D',location:'PaymentPage.tsx:completePayment',message:'payment attempt',data:{apiReachable,canConfirm,hasPreview:!!preview,warehouseId,lineCount:cart.lines.length},timestamp:Date.now()})}).catch(()=>{});
+    debugLog('PaymentPage.tsx:completePayment', 'checkout-start', {
+      warehouseId,
+      hasPreview: !!preview,
+      canConfirm,
+      online,
+      apiReachable,
+      useOfflineCheckout,
+      lineCount: cart.lines.length,
+    }, 'D')
     // #endregion
     if (!warehouseId || !preview || !canConfirm) return
     setLoading(true)
+
+    const finishOffline = async () => {
+      const orderNumber = await persistOfflineOrder({
+        warehouseId,
+        customerName: cart.customerName,
+        customerPhone: cart.customerPhone,
+        items: cart.toInput(),
+        payments,
+        preview,
+        notes: cart.notes,
+        lines: cart.lines,
+      })
+      await refreshPending()
+      const pendingCount = await countPendingOfflineOrders()
+      // #region agent log
+      debugLog('PaymentPage.tsx:completePayment', 'offline-saved', {
+        orderNumber,
+        pendingCount,
+      }, 'D')
+      // #endregion
+      setReceiptData({
+        storeName: bootstrap?.store.name ?? 'Toko',
+        orderNumber,
+        createdAt: new Date().toISOString(),
+        customerName: cart.customerName,
+        items: preview.lineItems.map((i) => ({
+          productName: i.productName,
+          qty: i.qty,
+          subtotal: i.subtotal,
+        })),
+        subtotal: preview.subtotal,
+        taxAmount: preview.taxAmount,
+        grandTotal: preview.grandTotal,
+        payments: payments.map((p) => ({ method: p.method, amount: p.amount })),
+      })
+      setSuccessOrder(orderNumber)
+    }
+
     try {
-      if (apiReachable) {
-        const order = await createOrder({
-          warehouse_id: warehouseId,
-          customer_name: cart.customerName,
-          customer_phone: cart.customerPhone,
-          customer_id: cart.customerId,
-          items: cart.toInput(),
-          coupon_code: cart.couponCode || null,
-          notes: cart.notes,
-          payments,
-        })
-        setReceiptData({
-          storeName: bootstrap?.store.name ?? 'Toko',
-          orderNumber: order.orderNumber,
-          createdAt: order.createdAt,
-          customerName: order.customerName,
-          items: order.items.map((i) => ({
-            productName: i.productName,
-            qty: i.qty,
-            subtotal: i.subtotal,
-          })),
-          subtotal: order.subtotal,
-          taxAmount: order.taxAmount,
-          grandTotal: order.grandTotal,
-          payments: order.payments.map((p) => ({ method: p.method, amount: p.amount })),
-        })
-        setSuccessOrder(order.orderNumber)
-      } else {
-        const clientReference = uuid()
-        // #region agent log
-        fetch('http://127.0.0.1:7854/ingest/4daf1b18-d0c4-465c-b5a4-479f15c14527',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'16bc84'},body:JSON.stringify({sessionId:'16bc84',hypothesisId:'D',location:'PaymentPage.tsx:offline-save',message:'saving offline order',data:{clientReference,grandTotal:preview.grandTotal},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
-        await saveOfflineOrder({
-          clientReference,
-          warehouseId,
-          status: 'pending',
-          customerName: cart.customerName,
-          customerPhone: cart.customerPhone,
-          items: cart.toInput(),
-          payments,
-          subtotal: preview.subtotal,
-          taxAmount: preview.taxAmount,
-          grandTotal: preview.grandTotal,
-          notes: cart.notes,
-          createdAt: new Date().toISOString(),
-        })
-        for (const line of cart.lines) {
-          await decrementLocalStock(warehouseId, line.product_id, line.variant_id, line.qty)
+      if (!useOfflineCheckout) {
+        try {
+          const order = await createOrder({
+            warehouse_id: warehouseId,
+            customer_name: cart.customerName,
+            customer_phone: cart.customerPhone,
+            customer_id: cart.customerId,
+            items: cart.toInput(),
+            coupon_code: cart.couponCode || null,
+            notes: cart.notes,
+            payments,
+          })
+          setReceiptData({
+            storeName: bootstrap?.store.name ?? 'Toko',
+            orderNumber: order.orderNumber,
+            createdAt: order.createdAt,
+            customerName: order.customerName,
+            items: order.items.map((i) => ({
+              productName: i.productName,
+              qty: i.qty,
+              subtotal: i.subtotal,
+            })),
+            subtotal: order.subtotal,
+            taxAmount: order.taxAmount,
+            grandTotal: order.grandTotal,
+            payments: order.payments.map((p) => ({ method: p.method, amount: p.amount })),
+          })
+          setSuccessOrder(order.orderNumber)
+        } catch (err) {
+          // #region agent log
+          debugLog('PaymentPage.tsx:completePayment', 'online-failed-fallback-offline', {
+            error: err instanceof Error ? err.message : 'unknown',
+          }, 'C')
+          // #endregion
+          await finishOffline()
         }
-        await refreshPending()
-        const orderNumber = `OFF-${clientReference.slice(0, 8)}`
-        setReceiptData({
-          storeName: bootstrap?.store.name ?? 'Toko',
-          orderNumber,
-          createdAt: new Date().toISOString(),
-          customerName: cart.customerName,
-          items: preview.lineItems.map((i) => ({
-            productName: i.productName,
-            qty: i.qty,
-            subtotal: i.subtotal,
-          })),
-          subtotal: preview.subtotal,
-          taxAmount: preview.taxAmount,
-          grandTotal: preview.grandTotal,
-          payments: payments.map((p) => ({ method: p.method, amount: p.amount })),
-        })
-        setSuccessOrder(orderNumber)
+      } else {
+        await finishOffline()
       }
+    } catch (err) {
+      // #region agent log
+      debugLog('PaymentPage.tsx:completePayment', 'checkout-error', {
+        error: err instanceof Error ? err.message : 'unknown',
+      }, 'E')
+      // #endregion
     } finally {
       setLoading(false)
     }

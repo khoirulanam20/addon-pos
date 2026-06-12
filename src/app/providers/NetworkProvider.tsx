@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { flushDebugLogs } from '@/lib/debug-log'
 import { isBrowserOnline, pingApi } from '@/services/connectivity'
 
 type NetworkContextValue = {
@@ -20,7 +21,10 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    const onOnline = () => void refresh()
+    const onOnline = () => {
+      flushDebugLogs()
+      void refresh()
+    }
     const onOffline = () => {
       setOnline(false)
       setApiReachable(false)

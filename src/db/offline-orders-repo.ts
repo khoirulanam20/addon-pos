@@ -1,8 +1,15 @@
+import { debugLog } from '@/lib/debug-log'
 import type { OfflineOrderRecord } from './dexie'
 import { db } from './dexie'
 
 export async function saveOfflineOrder(order: OfflineOrderRecord) {
   await db.offlineOrders.put(order)
+  // #region agent log
+  debugLog('offline-orders-repo.ts:saveOfflineOrder', 'dexie-put-ok', {
+    clientReference: order.clientReference.slice(0, 8),
+    grandTotal: order.grandTotal,
+  }, 'E')
+  // #endregion
 }
 
 export async function listOfflineOrders(status?: OfflineOrderRecord['status']) {

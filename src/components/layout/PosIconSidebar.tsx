@@ -15,7 +15,7 @@ const navItems = [
   { to: '/', label: 'Home', icon: Home, end: true },
   { to: '/customers', label: 'Customers', icon: Users },
   { to: '/cashier/drawer', label: 'Cashier', icon: Wallet },
-  { to: '/orders/history', label: 'Orders', icon: ShoppingBag },
+  { to: '/orders', label: 'Orders', icon: ShoppingBag },
   { to: '/products', label: 'Products', icon: Package },
   { to: '/reports', label: 'Reports', icon: BarChart3 },
   { to: '/settings/profile', label: 'Settings', icon: Settings },

@@ -1,16 +1,45 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchProductBySku, searchProducts } from '@/api/products'
 import type { CatalogProduct, CategoryNode } from '@/api/types'
-import { getCategories } from '@/db/bootstrap-repo'
-import { findProductBySku, getCatalogProducts } from '@/db/catalog-repo'
 import { useNetwork } from '@/app/providers/NetworkProvider'
+import { sortCatalogProducts } from '@/lib/catalog-sort'
+import { debugLog } from '@/lib/debug-log'
+import { isOfflineMode } from '@/lib/offline-mode'
+import { getCategories } from '@/db/bootstrap-repo'
+import { findProductBySku, getCatalogProducts, mergeCatalogFromApi } from '@/db/catalog-repo'
 
 function normalizeCatalogProduct(product: CatalogProduct): CatalogProduct {
   return { ...product, variants: product.variants ?? [] }
 }
 
+function filterCatalogProducts(
+  products: CatalogProduct[],
+  search: string,
+  categoryId: number | null,
+): CatalogProduct[] {
+  let filtered = products
+  if (categoryId) {
+    filtered = filtered.filter((product) => product.categoryId === categoryId)
+  }
+  if (search.trim()) {
+    const query = search.trim().toLowerCase()
+    filtered = filtered.filter(
+      (product) =>
+        product.name.toLowerCase().includes(query) ||
+        product.sku?.toLowerCase().includes(query) ||
+        (product.variants ?? []).some(
+          (variant) =>
+            variant.sku?.toLowerCase().includes(query) ||
+            variant.name?.toLowerCase().includes(query),
+        ),
+    )
+  }
+  return sortCatalogProducts(filtered)
+}
+
 export function usePosCatalog(warehouseId: number) {
-  const { apiReachable } = useNetwork()
+  const { apiReachable, online } = useNetwork()
+  const offlineMode = isOfflineMode(online, apiReachable)
   const [products, setProducts] = useState<CatalogProduct[]>([])
   const [categories, setCategories] = useState<CategoryNode[]>([])
   const [categoryId, setCategoryId] = useState<number | null>(null)
@@ -18,33 +47,38 @@ export function usePosCatalog(warehouseId: number) {
 
   const loadCatalog = useCallback(async () => {
     if (!warehouseId) return
-    if (apiReachable) {
-      const { products: online } = await searchProducts({
+
+    if (!offlineMode) {
+      const { products: onlineProducts } = await searchProducts({
         warehouse_id: warehouseId,
         q: search || undefined,
         category_id: categoryId ?? undefined,
       })
-      const normalized = online.map(normalizeCatalogProduct)
-      // #region agent log
-      fetch('http://127.0.0.1:7854/ingest/4daf1b18-d0c4-465c-b5a4-479f15c14527',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'16bc84'},body:JSON.stringify({sessionId:'16bc84',hypothesisId:'A-B',location:'usePosCatalog.ts:online',message:'catalog loaded online',data:{warehouseId,count:normalized.length,inStock:normalized.filter(p=>p.stock>0).length,sample:normalized.slice(0,3).map(p=>({id:p.id,name:p.name,stock:p.stock,variants:(p.variants??[]).length}))},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
-      setProducts(normalized)
-    } else {
-      const cached = await getCatalogProducts(warehouseId, categoryId)
-      const filtered = search
-        ? cached.filter(
-            (p) =>
-              p.name.toLowerCase().includes(search.toLowerCase()) ||
-              p.sku?.toLowerCase().includes(search.toLowerCase()),
-          )
-        : cached
-      const normalized = filtered.map(normalizeCatalogProduct)
-      // #region agent log
-      fetch('http://127.0.0.1:7854/ingest/4daf1b18-d0c4-465c-b5a4-479f15c14527',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'16bc84'},body:JSON.stringify({sessionId:'16bc84',hypothesisId:'A-B',location:'usePosCatalog.ts:offline',message:'catalog loaded offline cache',data:{warehouseId,count:normalized.length,inStock:normalized.filter(p=>p.stock>0).length,sample:normalized.slice(0,3).map(p=>({id:p.id,name:p.name,stock:p.stock,variants:(p.variants??[]).map(v=>({id:v.id,stock:v.stock}))}))},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
-      setProducts(normalized)
+      const normalized = onlineProducts.map(normalizeCatalogProduct)
+      await mergeCatalogFromApi(warehouseId, normalized)
+      setProducts(sortCatalogProducts(normalized))
+      return
     }
-  }, [warehouseId, apiReachable, search, categoryId])
+
+    const cached = await getCatalogProducts(warehouseId)
+    const filtered = filterCatalogProducts(cached.map(normalizeCatalogProduct), search, categoryId)
+    // #region agent log
+    debugLog('usePosCatalog.ts:loadCatalog', 'offline-catalog', {
+      warehouseId,
+      cachedCount: cached.length,
+      visibleCount: filtered.length,
+      categoryId,
+      hasSearch: !!search.trim(),
+      sampleStock: filtered.slice(0, 3).map((p) => ({
+        id: p.id,
+        stock: p.stock,
+        trackStock: p.trackStock,
+        variantCount: p.variants?.length ?? 0,
+      })),
+    }, 'P')
+    // #endregion
+    setProducts(filtered)
+  }, [warehouseId, offlineMode, search, categoryId])
 
   useEffect(() => {
     void loadCatalog()
@@ -68,7 +102,7 @@ export function usePosCatalog(warehouseId: number) {
 
   const scanSku = async (code: string) => {
     if (!warehouseId) return null
-    if (apiReachable) {
+    if (!offlineMode) {
       return fetchProductBySku(code, warehouseId)
     }
     const match = await findProductBySku(warehouseId, code)

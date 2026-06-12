@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import * as authApi from '@/api/auth'
-import { clearToken, getToken } from '@/api/client'
+import { ApiError, clearToken, getToken } from '@/api/client'
 import type { MeData, UserPayload } from '@/api/types'
 import type { ShiftPayload } from '@/api/types'
+import { clearAuthSession, loadAuthSession, saveAuthSession } from '@/lib/auth-session'
 
 type AuthContextValue = {
   user: UserPayload | null
@@ -18,41 +19,72 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserPayload | null>(null)
-  const [shift, setShift] = useState<ShiftPayload>(null)
+  const [shift, setShiftState] = useState<ShiftPayload>(null)
   const [loading, setLoading] = useState(true)
+
+  const applySession = useCallback((data: Pick<MeData, 'user' | 'currentShift'>) => {
+    setUser(data.user)
+    setShiftState(data.currentShift)
+    saveAuthSession(data)
+  }, [])
 
   const refresh = useCallback(async () => {
     if (!getToken()) {
       setUser(null)
-      setShift(null)
+      setShiftState(null)
       return
     }
-    const data: MeData = await authApi.fetchMe()
-    setUser(data.user)
-    setShift(data.currentShift)
-  }, [])
+    try {
+      const data = await authApi.fetchMe()
+      applySession(data)
+    } catch (err) {
+      const isUnauthorized = err instanceof ApiError && err.status === 401
+      const cached = loadAuthSession()
+      if (isUnauthorized) {
+        clearToken()
+        clearAuthSession()
+        setUser(null)
+        setShiftState(null)
+        return
+      }
+      if (cached) {
+        setUser(cached.user)
+        setShiftState(cached.currentShift)
+        return
+      }
+      clearToken()
+      clearAuthSession()
+      setUser(null)
+      setShiftState(null)
+    }
+  }, [applySession])
 
   useEffect(() => {
-    refresh()
-      .catch(() => {
-        clearToken()
-        setUser(null)
-        setShift(null)
-      })
-      .finally(() => setLoading(false))
+    void refresh().finally(() => setLoading(false))
   }, [refresh])
 
   const login = async (email: string, password: string) => {
     const data = await authApi.login(email, password)
-    setUser(data.user)
-    setShift(data.currentShift)
+    applySession({ user: data.user, currentShift: data.currentShift })
   }
 
   const logout = async () => {
     await authApi.logout()
+    clearAuthSession()
     setUser(null)
-    setShift(null)
+    setShiftState(null)
   }
+
+  const setShift = useCallback(
+    (next: ShiftPayload) => {
+      setShiftState(next)
+      setUser((current) => {
+        if (current) saveAuthSession({ user: current, currentShift: next })
+        return current
+      })
+    },
+    [],
+  )
 
   return (
     <AuthContext.Provider value={{ user, shift, loading, login, logout, refresh, setShift }}>

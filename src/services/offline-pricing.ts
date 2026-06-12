@@ -16,7 +16,7 @@ export function calculateOfflineTotal(
     const product = products.find((p) => p.id === item.product_id)
     if (!product) throw new Error('Produk tidak ditemukan di cache offline')
     const variant = item.variant_id
-      ? product.variants.find((v) => v.id === item.variant_id)
+      ? (product.variants ?? []).find((v) => v.id === item.variant_id)
       : null
     const unitPrice = variant?.finalPrice ?? product.finalPrice
     const name = variant?.name ?? product.name

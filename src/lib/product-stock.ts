@@ -8,31 +8,42 @@ export function productHasVariants(product: CatalogProduct): boolean {
   return productVariants(product).length > 0
 }
 
-export function isVariantOutOfStock(variant: CatalogVariant): boolean {
+/** Default true jika API tidak mengirim field (mis. hasil search lama). */
+export function tracksStock(product: CatalogProduct): boolean {
+  return product.trackStock !== false
+}
+
+export function tracksVariantStock(variant: CatalogVariant, product: CatalogProduct): boolean {
+  return variant.trackStock !== false && tracksStock(product)
+}
+
+export function isVariantOutOfStock(variant: CatalogVariant, product: CatalogProduct): boolean {
+  if (!tracksVariantStock(variant, product)) return false
   return variant.stock <= 0
 }
 
 /** Produk tidak bisa ditambahkan ke keranjang jika stok tampilan 0. */
-let _stockLogCount = 0
 export function isOutOfStock(product: CatalogProduct): boolean {
-  const variants = productVariants(product)
-  if (variants.length > 0) {
-    const variantInStock = variants.some((v) => v.stock > 0)
-    const out = !variantInStock
-    // #region agent log
-    if (_stockLogCount < 5 && (product.stock ?? 0) > 0 && !variantInStock) { _stockLogCount++; fetch('http://127.0.0.1:7854/ingest/4daf1b18-d0c4-465c-b5a4-479f15c14527',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'16bc84'},body:JSON.stringify({sessionId:'16bc84',hypothesisId:'F',location:'product-stock.ts:isOutOfStock',message:'parent has stock but variants empty',data:{id:product.id,name:product.name,parentStock:product.stock,variantStocks:variants.map(v=>v.stock),markedOut:out},timestamp:Date.now()})}).catch(()=>{}); }
-    // #endregion
-    return out
-  }
-
-  return (product.stock ?? 0) <= 0
+  if (!tracksStock(product)) return false
+  return displayStock(product) <= 0
 }
 
 export function displayStock(product: CatalogProduct): number {
   const variants = productVariants(product)
   if (variants.length > 0) {
-    return variants.reduce((sum, v) => sum + Math.max(0, v.stock), 0)
+    const trackedVariants = variants.filter((variant) => tracksVariantStock(variant, product))
+    const variantPool = trackedVariants.length > 0 ? trackedVariants : variants
+    const variantTotal = variantPool.reduce((sum, variant) => sum + Math.max(0, variant.stock), 0)
+    if (variantTotal > 0) return variantTotal
+    return Math.max(0, product.stock ?? 0)
   }
 
-  return product.stock ?? 0
+  return Math.max(0, product.stock ?? 0)
+}
+
+export function stockLabel(product: CatalogProduct): string {
+  if (!tracksStock(product)) return 'Tersedia'
+  const qty = displayStock(product)
+  if (qty <= 0) return 'Habis'
+  return `${qty} Qty`
 }

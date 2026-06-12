@@ -40,7 +40,7 @@ export function HomePage() {
 
   const addProduct = (product: CatalogProduct, variant?: CatalogProduct['variants'][0]) => {
     if (variant) {
-      if (isVariantOutOfStock(variant)) return
+      if (isVariantOutOfStock(variant, product)) return
     } else if (isOutOfStock(product)) {
       return
     }

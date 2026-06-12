@@ -1,6 +1,6 @@
 import type { CatalogProduct } from '@/api/types'
 import { CurrencyDisplay } from '@/components/common/CurrencyDisplay'
-import { displayStock, isOutOfStock } from '@/lib/product-stock'
+import { isOutOfStock, stockLabel } from '@/lib/product-stock'
 
 type Props = {
   products: CatalogProduct[]
@@ -42,7 +42,7 @@ export function ProductGrid({ products, onSelect }: Props) {
               <CurrencyDisplay amount={product.finalPrice} />
             </div>
             <div className={`mt-1 text-xs ${outOfStock ? 'font-medium text-red-500' : 'text-gray-500'}`}>
-              {outOfStock ? 'Habis' : `${displayStock(product)} Qty`}
+              {stockLabel(product)}
             </div>
           </button>
         )

@@ -1,10 +1,12 @@
 import { fetchCatalogPage } from '@/api/catalog'
 import { fetchBootstrap, fetchCategories } from '@/api/bootstrap'
 import { syncOfflineOrders } from '@/api/sync'
-import { saveCatalogProducts } from '@/db/catalog-repo'
+import { debugLog } from '@/lib/debug-log'
+import { saveCatalogFromSync } from '@/db/catalog-repo'
 import { saveBootstrap, saveCategories } from '@/db/bootstrap-repo'
 import { listOfflineOrders, updateOfflineOrderStatus } from '@/db/offline-orders-repo'
 import { getLastSyncAt, setLastSyncAt } from '@/db/sync-meta-repo'
+import { prepareOfflineOrderPayload } from '@/services/prepare-offline-sync'
 
 export async function pullCatalog(warehouseId: number) {
   const updatedSince = await getLastSyncAt(warehouseId)
@@ -13,10 +15,7 @@ export async function pullCatalog(warehouseId: number) {
 
   do {
     const { products, meta } = await fetchCatalogPage(warehouseId, page, updatedSince ?? undefined)
-    // #region agent log
-    fetch('http://127.0.0.1:7854/ingest/4daf1b18-d0c4-465c-b5a4-479f15c14527',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'16bc84'},body:JSON.stringify({sessionId:'16bc84',hypothesisId:'A',location:'sync-engine.ts:pullCatalog',message:'catalog sync page',data:{warehouseId,page,updatedSince,inStock:products.filter(p=>p.stock>0).length,total:products.length,sample:products.slice(0,2).map(p=>({id:p.id,stock:p.stock}))},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-    await saveCatalogProducts(warehouseId, products)
+    await saveCatalogFromSync(warehouseId, products)
     lastPage = meta.lastPage
     page += 1
   } while (page <= lastPage)
@@ -34,23 +33,26 @@ export async function pullBootstrapData() {
 }
 
 export async function pushOfflineOrders() {
-  const pending = await listOfflineOrders('pending')
-  if (pending.length === 0) return []
+  const [pending, failed] = await Promise.all([
+    listOfflineOrders('pending'),
+    listOfflineOrders('failed'),
+  ])
+  const toSync = [...pending, ...failed]
+  if (toSync.length === 0) return []
 
-  const payload = pending.map((order) => ({
-    client_reference: order.clientReference,
-    warehouse_id: order.warehouseId,
-    created_at: order.createdAt,
-    customer_name: order.customerName,
-    customer_phone: order.customerPhone,
-    items: order.items,
-    payments: order.payments,
-    notes: order.notes,
-  }))
+  const payload = await Promise.all(toSync.map((order) => prepareOfflineOrderPayload(order)))
 
   const results = await syncOfflineOrders(payload)
 
   for (const result of results) {
+    // #region agent log
+    debugLog('sync-engine.ts:pushOfflineOrders', 'sync-result', {
+      clientReference: result.client_reference.slice(0, 8),
+      status: result.status,
+      error: result.error ?? null,
+    }, 'F')
+    // #endregion
+
     if (result.status === 'created' || result.status === 'duplicate') {
       await updateOfflineOrderStatus(result.client_reference, 'synced')
     } else {
@@ -63,7 +65,14 @@ export async function pushOfflineOrders() {
 
 export async function fullSync(warehouseId: number) {
   await pullBootstrapData()
-  await pullCatalog(warehouseId)
   const orderResults = await pushOfflineOrders()
+  // #region agent log
+  debugLog('sync-engine.ts:fullSync', 'orders-pushed-before-catalog', {
+    warehouseId,
+    pushedCount: orderResults.length,
+    statuses: orderResults.map((r) => r.status),
+  }, 'S')
+  // #endregion
+  await pullCatalog(warehouseId)
   return orderResults
 }

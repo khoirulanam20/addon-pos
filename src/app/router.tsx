@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from '@/app/providers/AuthProvider'
 import { CashierLayout } from '@/components/layout/CashierLayout'
 import { OrdersLayout } from '@/components/layout/OrdersLayout'
+import { OrdersIndexRedirect } from '@/components/orders/OrdersIndexRedirect'
 import { PosLayout } from '@/components/layout/PosLayout'
 import { SettingsLayout } from '@/components/layout/SettingsLayout'
 import { CashDrawerPage } from '@/pages/cashier/CashDrawerPage'
@@ -52,7 +53,7 @@ export function AppRouter() {
             <Route path="sale-history" element={<CashierSaleHistoryPage />} />
           </Route>
           <Route path="/orders" element={<OrdersLayout />}>
-            <Route index element={<Navigate to="/orders/history" replace />} />
+            <Route index element={<OrdersIndexRedirect />} />
             <Route path="history" element={<OrdersHistoryPage />} />
             <Route path="hold" element={<OrdersHoldPage />} />
             <Route path="offline" element={<OrdersOfflinePage />} />

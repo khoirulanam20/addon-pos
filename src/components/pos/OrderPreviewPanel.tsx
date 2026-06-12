@@ -30,7 +30,25 @@ export function OrderPreviewPanel({ order, offlineOrder, storeName = 'Toko' }: P
         <div className="flex-1 overflow-auto p-4 text-sm">
           <p>{offlineOrder.customerName}</p>
           <p className="text-gray-500">{formatDateTime(offlineOrder.createdAt)}</p>
-          <p className="mt-2">Status: {offlineOrder.status}</p>
+          <p className="mt-2">
+            Status:{' '}
+            <span
+              className={
+                offlineOrder.status === 'failed'
+                  ? 'font-medium text-red-600'
+                  : offlineOrder.status === 'synced'
+                    ? 'font-medium text-green-600'
+                    : ''
+              }
+            >
+              {offlineOrder.status}
+            </span>
+          </p>
+          {offlineOrder.error && (
+            <p className="mt-2 rounded-md bg-red-50 p-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">
+              {offlineOrder.error}
+            </p>
+          )}
           <p className="mt-4 font-bold">
             Total: <CurrencyDisplay amount={offlineOrder.grandTotal} />
           </p>
