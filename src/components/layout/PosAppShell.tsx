@@ -6,12 +6,12 @@ import { PosIconSidebar } from './PosIconSidebar'
 import { PosTopBar } from './PosTopBar'
 
 export function PosAppShell() {
-  const { shift } = useAuth()
+  const { shift, loading } = useAuth()
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       <OfflineBanner />
-      {!shift && <CashDrawerModal />}
+      {!loading && !shift && <CashDrawerModal />}
       <div className="flex min-h-0 flex-1">
         <PosIconSidebar />
         <div className="flex min-w-0 flex-1 flex-col">

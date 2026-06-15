@@ -1,8 +1,10 @@
+import { Download } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { fetchReportSummary, type ReportSummary } from '@/api/reports'
+import { fetchReportExport, fetchReportSummary, type ReportSummary } from '@/api/reports'
 import { useNetwork } from '@/app/providers/NetworkProvider'
 import { CurrencyDisplay } from '@/components/common/CurrencyDisplay'
 import { PosMetricCard } from '@/components/ui/PosMetricCard'
+import { exportReportExcel } from '@/lib/export-report-excel'
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10)
@@ -14,6 +16,8 @@ export function ReportsPage() {
   const [from, setFrom] = useState(todayIso())
   const [to, setTo] = useState(todayIso())
   const [report, setReport] = useState<ReportSummary | null>(null)
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState('')
 
   useEffect(() => {
     if (!apiReachable) return
@@ -26,6 +30,19 @@ export function ReportsPage() {
 
   const sparkOrders = report?.sparkline.map((s) => s.orders) ?? []
   const sparkRevenue = report?.sparkline.map((s) => s.revenue) ?? []
+
+  const exportExcel = async () => {
+    setExporting(true)
+    setExportError('')
+    try {
+      const data = await fetchReportExport({ from, to, period })
+      exportReportExcel(data)
+    } catch {
+      setExportError('Gagal mengekspor laporan.')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -46,7 +63,17 @@ export function ReportsPage() {
         </div>
         <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900" />
         <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900" />
+        <button
+          type="button"
+          onClick={() => void exportExcel()}
+          disabled={exporting || !report}
+          className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+        >
+          <Download className="h-4 w-4" />
+          {exporting ? 'Mengekspor...' : 'Export Excel'}
+        </button>
       </div>
+      {exportError && <p className="text-sm text-red-600">{exportError}</p>}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <PosMetricCard label="Orders" value={report?.orders ?? 0} trend={{ value: '—', up: true }} sparkline={sparkOrders} />

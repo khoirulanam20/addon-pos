@@ -4,8 +4,8 @@ import { useAuth } from '@/app/providers/AuthProvider'
 
 export function LoginPage() {
   const { user, loading, login } = useAuth()
-  const [email, setEmail] = useState('admin@yclothes.test')
-  const [password, setPassword] = useState('admin123')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
