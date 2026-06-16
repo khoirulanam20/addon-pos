@@ -1,4 +1,4 @@
-import { Check, ChevronLeft, ChevronRight, Plus, UserRound, X } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Plus, ShoppingCart, UserRound, X } from 'lucide-react'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createHeldCart } from '@/api/held-carts'
@@ -7,7 +7,9 @@ import type { CustomerListMeta, CustomerResult } from '@/api/customers'
 import type { BootstrapData } from '@/api/types'
 import { useAuth } from '@/app/providers/AuthProvider'
 import { useNetwork } from '@/app/providers/NetworkProvider'
+import { CartBottomSheet } from '@/components/pos/CartBottomSheet'
 import { CartPanel } from '@/components/pos/CartPanel'
+import { CurrencyDisplay } from '@/components/common/CurrencyDisplay'
 import { CustomerListSkeleton } from '@/components/ui/Skeleton'
 import { getBootstrap } from '@/db/bootstrap-repo'
 import { saveLocalHeldCart } from '@/db/held-carts-repo'
@@ -54,6 +56,7 @@ export function CustomersPage() {
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [cartSheetOpen, setCartSheetOpen] = useState(false)
 
   useEffect(() => {
     void getBootstrap().then(setBootstrap)
@@ -143,13 +146,15 @@ export function CustomersPage() {
   }
 
   const isWalkIn = !customerId
+  const lineCount = cart.lines.length
+  const hasCartItems = lineCount > 0
   const showingFrom = meta && meta.total > 0 ? (meta.currentPage - 1) * meta.perPage + 1 : 0
   const showingTo = meta ? Math.min(meta.currentPage * meta.perPage, meta.total) : 0
 
   if (!shift) return null
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] gap-4">
+    <div className={`flex min-h-0 flex-1 gap-4 ${hasCartItems ? 'pb-14 lg:pb-0' : ''}`}>
       <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-hidden">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-lg font-semibold">Customers</h1>
@@ -332,13 +337,44 @@ export function CustomersPage() {
         </div>
       </div>
 
-      <div className="w-[340px] shrink-0">
+      <div className="hidden w-[340px] shrink-0 lg:block">
         <CartPanel
           preview={preview}
           onHold={() => void handleHold()}
           onProceed={() => navigate('/payment')}
         />
       </div>
+
+      {hasCartItems && (
+        <div className="bottom-nav-offset fixed inset-x-0 z-30 border-t border-gray-200 bg-white px-4 py-2 shadow-lg dark:border-gray-800 dark:bg-gray-900 lg:hidden">
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="text-xs text-gray-500">
+                {lineCount} item{lineCount > 1 ? 's' : ''}
+              </div>
+              <div className="text-base font-bold text-green-600">
+                <CurrencyDisplay amount={preview?.grandTotal ?? 0} />
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCartSheetOpen(true)}
+              className="flex min-h-[44px] items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700"
+            >
+              <ShoppingCart className="h-5 w-5" />
+              Keranjang
+            </button>
+          </div>
+        </div>
+      )}
+
+      <CartBottomSheet
+        open={cartSheetOpen}
+        onClose={() => setCartSheetOpen(false)}
+        preview={preview}
+        onHold={() => void handleHold()}
+        onProceed={() => navigate('/payment')}
+      />
     </div>
   )
 }

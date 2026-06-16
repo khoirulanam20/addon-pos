@@ -1,8 +1,10 @@
+import { FileText } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useSync } from '@/app/providers/SyncProvider'
 import { useNetwork } from '@/app/providers/NetworkProvider'
 import { CurrencyDisplay } from '@/components/common/CurrencyDisplay'
+import { OrderPreviewBottomSheet } from '@/components/pos/OrderPreviewBottomSheet'
 import { OrderPreviewPanel } from '@/components/pos/OrderPreviewPanel'
 import { PosDataTable } from '@/components/ui/PosDataTable'
 import { PosEmptyState } from '@/components/ui/PosEmptyState'
@@ -15,6 +17,7 @@ export function OrdersOfflinePage() {
   const [orders, setOrders] = useState<OfflineOrderRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<OfflineOrderRecord | null>(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
   const { syncNow, syncing, pendingCount } = useSync()
   const { apiReachable } = useNetwork()
   const location = useLocation()
@@ -80,7 +83,7 @@ export function OrdersOfflinePage() {
   }
 
   return (
-    <div className="flex h-full gap-4">
+    <div className={`flex h-full flex-col gap-4 lg:flex-row ${selected ? 'pb-14 lg:pb-0' : ''}`}>
       <div className="min-w-0 flex-1">
         <div className="mb-4 flex items-center justify-between gap-2">
           <p className="text-sm text-gray-500">
@@ -125,12 +128,42 @@ export function OrdersOfflinePage() {
           rows={orders}
           keyFn={(o) => o.clientReference}
           selectedKey={selected?.clientReference ?? null}
-          onRowClick={(o) => setSelected(o)}
+          onRowClick={(o) => {
+            setSelected(o)
+            setPreviewOpen(true)
+          }}
         />
       </div>
-      <div className="w-[380px] shrink-0">
+      <div className="hidden w-[380px] shrink-0 lg:block">
         <OrderPreviewPanel offlineOrder={selected} />
       </div>
+
+      {selected && (
+        <div className="bottom-nav-offset fixed inset-x-0 z-30 border-t border-gray-200 bg-white px-4 py-2 shadow-lg dark:border-gray-800 dark:bg-gray-900 lg:hidden">
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="text-xs text-gray-500">Order {selected.clientReference.slice(0, 8)}</div>
+              <div className="text-base font-bold text-green-600">
+                <CurrencyDisplay amount={selected.grandTotal} />
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPreviewOpen(true)}
+              className="flex min-h-[44px] items-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700"
+            >
+              <FileText className="h-5 w-5" />
+              Detail
+            </button>
+          </div>
+        </div>
+      )}
+
+      <OrderPreviewBottomSheet
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        offlineOrder={selected}
+      />
     </div>
   )
 }

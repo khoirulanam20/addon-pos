@@ -133,7 +133,7 @@ export function AppLoadingSkeleton() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-gray-50 dark:bg-gray-950">
       <div className="flex min-h-0 flex-1">
-        <div className="flex w-16 shrink-0 flex-col gap-2 border-r border-gray-200 p-2 dark:border-gray-800">
+        <div className="hidden w-16 shrink-0 flex-col gap-2 border-r border-gray-200 p-2 dark:border-gray-800 lg:flex">
           {Array.from({ length: 7 }, (_, i) => (
             <Skeleton key={i} className="h-10 w-10 rounded-lg" />
           ))}
@@ -146,7 +146,7 @@ export function AppLoadingSkeleton() {
               <Skeleton className="h-8 w-8 rounded-full" />
             </div>
           </div>
-          <main className="flex-1 space-y-4 p-4">
+          <main className="flex-1 space-y-4 p-4 pb-20 lg:pb-4">
             <Skeleton className="h-10 w-full max-w-lg rounded-lg" />
             <div className="flex gap-2">
               {Array.from({ length: 4 }, (_, i) => (
@@ -156,6 +156,11 @@ export function AppLoadingSkeleton() {
             <ProductGridSkeleton count={8} />
           </main>
         </div>
+      </div>
+      <div className="flex h-14 gap-2 border-t border-gray-200 p-2 pb-safe dark:border-gray-800 lg:hidden">
+        {Array.from({ length: 5 }, (_, i) => (
+          <Skeleton key={i} className="h-full flex-1 rounded-lg" />
+        ))}
       </div>
     </div>
   )

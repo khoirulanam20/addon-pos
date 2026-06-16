@@ -69,7 +69,7 @@ export function NumericKeypad({ value, onChange, onCancel }: Props) {
             key={key}
             type="button"
             onClick={() => press(key)}
-            className="rounded-lg border border-gray-200 bg-white py-4 text-lg font-medium hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
+            className="min-h-[48px] rounded-lg border border-gray-200 bg-white py-4 text-lg font-medium hover:bg-gray-50 lg:min-h-0 lg:py-4 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
           >
             {key}
           </button>
@@ -77,7 +77,7 @@ export function NumericKeypad({ value, onChange, onCancel }: Props) {
         <button
           type="button"
           onClick={backspace}
-          className="rounded-lg border border-gray-200 bg-white py-4 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800"
+          className="min-h-[48px] rounded-lg border border-gray-200 bg-white py-4 hover:bg-gray-50 lg:min-h-0 lg:py-4 dark:border-gray-700 dark:bg-gray-800"
         >
           <Delete className="mx-auto h-5 w-5" />
         </button>
@@ -86,7 +86,7 @@ export function NumericKeypad({ value, onChange, onCancel }: Props) {
         <button
           type="button"
           onClick={onCancel}
-          className="w-full rounded-lg border border-gray-300 py-3 text-sm font-medium dark:border-gray-600"
+          className="w-full rounded-lg border border-gray-300 py-3 text-sm font-medium min-h-[48px] lg:min-h-0 dark:border-gray-600"
         >
           Cancel
         </button>

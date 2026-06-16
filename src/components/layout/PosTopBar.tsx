@@ -19,9 +19,11 @@ export function PosTopBar() {
   }
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4 dark:border-gray-800 dark:bg-gray-900">
-      <h1 className="text-base font-semibold text-gray-900 dark:text-white">{appName}</h1>
-      <div className="flex items-center gap-2">
+    <header className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-3 dark:border-gray-800 dark:bg-gray-900 lg:px-4">
+      <h1 className="max-w-[40vw] truncate text-base font-semibold text-gray-900 dark:text-white lg:max-w-none">
+        {appName}
+      </h1>
+      <div className="flex items-center gap-1 lg:gap-2">
         <button
           type="button"
           onClick={() => void syncNow()}
@@ -34,7 +36,7 @@ export function PosTopBar() {
         <button
           type="button"
           onClick={toggleFullscreen}
-          className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+          className="hidden rounded-lg p-2 text-gray-600 hover:bg-gray-100 lg:block dark:text-gray-300 dark:hover:bg-gray-800"
           title="Fullscreen"
         >
           <Maximize className="h-5 w-5" />
@@ -55,10 +57,11 @@ export function PosTopBar() {
         </span>
         <Link
           to="/orders/hold"
-          className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
+          className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm font-medium text-gray-900 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700 lg:px-3"
+          title="Hold Orders"
         >
           <Pause className="h-4 w-4" />
-          Hold Orders
+          <span className="hidden lg:inline">Hold Orders</span>
         </Link>
       </div>
     </header>

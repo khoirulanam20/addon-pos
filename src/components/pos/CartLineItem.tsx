@@ -47,7 +47,7 @@ export function CartLineItem({ line, index, lineSubtotal }: Props) {
         <button
           type="button"
           onClick={() => cart.removeLine(index)}
-          className="shrink-0 rounded bg-red-500 px-1.5 py-0.5 text-xs text-white hover:bg-red-600"
+          className="shrink-0 rounded bg-red-500 px-2 py-1 text-xs text-white hover:bg-red-600 min-h-[32px] min-w-[32px] lg:min-h-0 lg:min-w-0 lg:px-1.5 lg:py-0.5"
         >
           ×
         </button>
@@ -63,7 +63,7 @@ export function CartLineItem({ line, index, lineSubtotal }: Props) {
               <button
                 type="button"
                 onClick={() => cart.updateQty(index, line.qty - 1)}
-                className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="min-h-[44px] min-w-[44px] px-3 py-2 hover:bg-gray-100 lg:min-h-0 lg:min-w-0 dark:hover:bg-gray-800"
               >
                 -
               </button>
@@ -77,7 +77,7 @@ export function CartLineItem({ line, index, lineSubtotal }: Props) {
               <button
                 type="button"
                 onClick={() => cart.updateQty(index, line.qty + 1)}
-                className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="min-h-[44px] min-w-[44px] px-3 py-2 hover:bg-gray-100 lg:min-h-0 lg:min-w-0 dark:hover:bg-gray-800"
               >
                 +
               </button>

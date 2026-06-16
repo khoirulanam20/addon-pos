@@ -9,7 +9,7 @@ const tabs = [
 
 export function OrdersLayout() {
   return (
-    <div className="flex h-[calc(100vh-7rem)] flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <PosTabs tabs={tabs} />
       <div className="min-h-0 flex-1">
         <Outlet />

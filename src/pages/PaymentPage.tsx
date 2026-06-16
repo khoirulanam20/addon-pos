@@ -1,4 +1,4 @@
-import { Building2, ChevronRight, CreditCard } from 'lucide-react'
+import { Building2, ChevronDown, ChevronRight, CreditCard } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { createOrder } from '@/api/orders'
@@ -45,6 +45,7 @@ export function PaymentPage() {
   const [successOrder, setSuccessOrder] = useState<string | null>(null)
   const [receiptData, setReceiptData] = useState<Parameters<typeof printReceipt>[0] | null>(null)
   const [snapshot, setSnapshot] = useState<PaymentSnapshot | null>(null)
+  const [orderDetailsExpanded, setOrderDetailsExpanded] = useState(false)
   const snapshotTaken = useRef(false)
 
   useEffect(() => {
@@ -232,15 +233,15 @@ export function PaymentPage() {
   }
 
   return (
-    <div className="-m-4 flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="flex shrink-0 items-center border-b border-gray-200 bg-white px-4 py-2 dark:border-gray-800 dark:bg-gray-900">
+    <div className="-m-4 flex min-h-0 flex-1 flex-col overflow-hidden pb-24 lg:pb-0">
+      <div className="sticky top-0 z-10 flex shrink-0 items-center border-b border-gray-200 bg-white px-4 py-2 dark:border-gray-800 dark:bg-gray-900">
         <Link to="/" className="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white">
           ← Back
         </Link>
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 md:grid-cols-2">
-        <div className="flex min-h-0 flex-col gap-2 overflow-hidden border-r border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950 md:gap-3 md:p-4">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 lg:grid-cols-2">
+        <div className="flex min-h-0 flex-col gap-2 overflow-hidden border-r border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950 lg:gap-3 lg:p-4">
           <div className="grid shrink-0 grid-cols-3 gap-2">
             <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
               <div className="text-xs text-gray-500">Payable Amount</div>
@@ -364,14 +365,34 @@ export function PaymentPage() {
         </div>
 
         <div className="flex min-h-0 flex-col overflow-hidden bg-white dark:bg-gray-900">
-          <div className="shrink-0 border-b border-gray-200 px-3 py-2 dark:border-gray-800">
-            <div className="font-semibold">Order Details</div>
-            <div className="mt-1 flex justify-between text-sm">
-              <span>{displayCustomer.name}</span>
-              <span className="text-gray-500">{displayCustomer.phone}</span>
+          <button
+            type="button"
+            onClick={() => setOrderDetailsExpanded((v) => !v)}
+            className="flex w-full shrink-0 items-center justify-between border-b border-gray-200 px-3 py-3 text-left dark:border-gray-800 lg:pointer-events-none lg:cursor-default"
+          >
+            <div>
+              <div className="font-semibold">Order Details</div>
+              <div className="mt-1 flex justify-between gap-4 text-sm lg:justify-start">
+                <span>{displayCustomer.name}</span>
+                <span className="text-gray-500">{displayCustomer.phone}</span>
+              </div>
             </div>
-          </div>
-          <div className="min-h-0 shrink overflow-y-auto px-3 py-2">
+            <div className="flex items-center gap-2 lg:hidden">
+              <span className="text-sm font-bold text-green-600">
+                <CurrencyDisplay amount={preview.grandTotal} />
+              </span>
+              {orderDetailsExpanded ? (
+                <ChevronDown className="h-5 w-5 text-gray-400" />
+              ) : (
+                <ChevronRight className="h-5 w-5 text-gray-400" />
+              )}
+            </div>
+          </button>
+          <div
+            className={`min-h-0 shrink overflow-y-auto px-3 py-2 ${
+              orderDetailsExpanded ? 'block' : 'hidden'
+            } lg:block`}
+          >
             {preview.lineItems.map((item, i) => (
               <div key={i} className="mb-2 border-b border-gray-100 pb-2 text-sm last:mb-0 last:border-0 last:pb-0 dark:border-gray-800">
                 <div className="flex items-start justify-between gap-2">
@@ -388,7 +409,11 @@ export function PaymentPage() {
               </div>
             ))}
           </div>
-          <div className="shrink-0 space-y-1 border-t border-gray-200 px-3 py-2 text-sm dark:border-gray-800">
+          <div
+            className={`shrink-0 space-y-1 border-t border-gray-200 px-3 py-2 text-sm dark:border-gray-800 ${
+              orderDetailsExpanded ? 'block' : 'hidden'
+            } lg:block`}
+          >
             <div className="flex justify-between">
               <span>Subtotal</span>
               <CurrencyDisplay amount={preview.subtotal} />
@@ -414,13 +439,31 @@ export function PaymentPage() {
               type="button"
               onClick={() => void completePayment()}
               disabled={loading || !canConfirm}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 py-2.5 font-medium text-white hover:bg-green-700 disabled:opacity-50"
+              className="hidden w-full items-center justify-center gap-2 rounded-lg bg-green-600 py-2.5 font-medium text-white hover:bg-green-700 disabled:opacity-50 lg:flex"
             >
               <CreditCard className="h-4 w-4" />
               Confirm Payment
             </button>
           </div>
         </div>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white px-4 py-3 pb-safe shadow-lg dark:border-gray-800 dark:bg-gray-900 lg:hidden">
+        <div className="mb-2 flex items-center justify-between text-sm">
+          <span className="text-gray-500">Sisa bayar</span>
+          <span className={`font-bold ${remaining !== 0 ? 'text-red-600' : 'text-green-600'}`}>
+            <CurrencyDisplay amount={remaining} />
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => void completePayment()}
+          disabled={loading || !canConfirm}
+          className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-lg bg-green-600 font-medium text-white hover:bg-green-700 disabled:opacity-50"
+        >
+          <CreditCard className="h-5 w-5" />
+          Confirm Payment
+        </button>
       </div>
 
       {successOrder && (

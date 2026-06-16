@@ -28,7 +28,7 @@ export function ProductGrid({ products, onSelect, loading }: Props) {
             type="button"
             disabled={outOfStock}
             onClick={() => !outOfStock && onSelect(product)}
-            className={`rounded-xl border p-3 text-left shadow-sm transition ${
+            className={`rounded-xl border p-3 text-left shadow-sm transition active:scale-[0.98] ${
               outOfStock
                 ? 'cursor-not-allowed border-gray-200 bg-gray-50 opacity-60 dark:border-gray-800 dark:bg-gray-900/50'
                 : 'border-gray-200 bg-white hover:border-green-500 hover:shadow dark:border-gray-800 dark:bg-gray-900'

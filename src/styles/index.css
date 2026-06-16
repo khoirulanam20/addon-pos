@@ -11,6 +11,14 @@ body {
   @apply bg-gray-50 text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100;
 }
 
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@utility bottom-nav-offset {
+  bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+}
+
 @media print {
   body * {
     visibility: hidden;

@@ -1,36 +1,18 @@
-import {
-  BarChart3,
-  Home,
-  LogOut,
-  Package,
-  Settings,
-  ShoppingBag,
-  Users,
-  Wallet,
-} from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '@/app/providers/AuthProvider'
-
-const navItems = [
-  { to: '/', label: 'Home', icon: Home, end: true },
-  { to: '/customers', label: 'Customers', icon: Users },
-  { to: '/cashier/drawer', label: 'Cashier', icon: Wallet },
-  { to: '/orders', label: 'Orders', icon: ShoppingBag },
-  { to: '/products', label: 'Products', icon: Package },
-  { to: '/reports', label: 'Reports', icon: BarChart3 },
-  { to: '/settings/profile', label: 'Settings', icon: Settings },
-]
+import { sidebarNavItems } from './nav-items'
 
 export function PosIconSidebar() {
   const { user, logout } = useAuth()
 
   return (
-    <aside className="flex w-[72px] shrink-0 flex-col border-r border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+    <aside className="hidden w-[72px] shrink-0 flex-col border-r border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 lg:flex">
       <div className="flex h-14 items-center justify-center border-b border-gray-200 dark:border-gray-800">
         <span className="text-xs font-bold text-gray-900 dark:text-white">POS</span>
       </div>
       <nav className="flex flex-1 flex-col items-center gap-1 py-3">
-        {navItems.map(({ to, label, icon: Icon, end }) => (
+        {sidebarNavItems.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
